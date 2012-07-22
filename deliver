@@ -3,16 +3,14 @@
 import argparse
 import os
 import keyring
-import modules.git
-import modules.android
 import smtplib
 
-from modules import message
-
-from modules.actions import FlagAction
+from modules import *
+from modules.actions import *
 from ansi2html import Ansi2HTMLConverter
 
 app_name = 'deliver_python_app'
+modules = []
 
 def get_password():
     #print "Please enter your password:"
@@ -55,13 +53,39 @@ def start_request(args):
         print 'Please try again or press Ctrl-C'
         start_request(args, filepath)
 
+def try_load_from_default(parser, args):
+    filepath = 'deliver.yaml'
+    if os.path.exists(filepath):
+        setattr(args, 'config', filepath);
+        action = SetDefaultFromYAMLFile(None, 'config')
+        action.__call__(parser, args, filepath)
+        return
 
 if __name__ == '__main__':
     os.system("stty echo")
-    parser = argparse.ArgumentParser(description="Build Delivery Utility", epilog='Will automatically look for bin/*-debug.apk and bin/*-release.apk files.  These files are sent with a message via gmail to the recipients')
+    parser = argparse.ArgumentParser(description="Build Delivery Utility", add_help=False, epilog='Will automatically look for bin/*-debug.apk and bin/*-release.apk files.  These files are sent with a message via gmail to the recipients')
 
-    modules.android.setup_args(parser);
-    modules.git.setup_args(parser);
+    parser.add_argument('-c', '--config', dest='config', action=SetDefaultFromYAMLFile, help='Set the config file, default.yaml')
+
+    args, remaining = parser.parse_known_args()
+
+    if not args.config:
+        try_load_from_default(parser, args)
+
+    if args.modules:
+        for module in args.modules.split(" "):
+            try:
+                mod = __import__('modules.' + module, fromlist=[''])
+                print 'modules.' + module
+                modules.append(mod)
+            except:
+                pass
+
+    parser = argparse.ArgumentParser(parents=[parser])
+
+    for module in modules:
+        module.setup_args(parser)
+
     parser.add_argument(dest='email', nargs="+", help='A list of email addresses')
 
     args = parser.parse_args()
