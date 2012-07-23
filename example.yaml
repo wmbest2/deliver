@@ -3,10 +3,6 @@ modules:
     android
     pivotal
 
-recipients:
-    wmbest2@gmail.com
-    scott.ferguson@vokalinteractive.com
-
 library:
     True
 
