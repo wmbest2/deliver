@@ -5,12 +5,12 @@ import os
 import keyring
 import smtplib
 
-from modules import *
+from modules.message import Message
 from modules.actions import *
 from ansi2html import Ansi2HTMLConverter
 
 app_name = 'deliver_python_app'
-modules = []
+imports = []
 
 def get_password():
     #print "Please enter your password:"
@@ -38,10 +38,12 @@ def start_request(args):
 
     try:
 
-        msg = message.Message()
+        msg = Message()
+        msg.set_recipients(args.recipients)
         msg = process(args, msg)
-        msg = modules.android.process(args, msg)
-        msg = modules.git.process(args, msg)
+
+        for module in imports:
+            msg = module.process(args, msg)
 
         msg.send(username, password)
 
@@ -51,7 +53,7 @@ def start_request(args):
         #Clear the keyring for this user
         keyring.set_password(app_name, username, '')
         print 'Please try again or press Ctrl-C'
-        start_request(args, filepath)
+        start_request(args)
 
 def try_load_from_default(parser, args):
     filepath = 'deliver.yaml'
@@ -77,16 +79,18 @@ if __name__ == '__main__':
             try:
                 mod = __import__('modules.' + module, fromlist=[''])
                 print 'modules.' + module
-                modules.append(mod)
+                imports.append(mod)
             except:
                 pass
 
     parser = argparse.ArgumentParser(parents=[parser])
 
-    for module in modules:
+    for module in imports:
         module.setup_args(parser)
 
-    parser.add_argument(dest='email', nargs="+", help='A list of email addresses')
+    parser.add_argument(dest='recipients', nargs="+", help='A list of email addresses')
 
+    print vars(args)
+    parser.set_defaults(**vars(args))
     args = parser.parse_args()
     start_request(args)

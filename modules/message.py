@@ -52,5 +52,5 @@ class Message:
         mailServer.ehlo()
         mailServer.login(username, password)
 
-        mailServer.sendmail(username, to, msg.as_string())
+        mailServer.sendmail(username, self.recipients, msg.as_string())
         mailServer.close()
